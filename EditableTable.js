@@ -2,6 +2,7 @@ define( ["qlik", "jquery", "text!./style.css"], function ( qlik, $, cssContent )
 	'use strict';
 	$( "<style>" ).html( cssContent ).appendTo( "head" );
 	var app; // Global app
+	var linesToFetch = 10;
 	return {
 		initialProperties : {
 			version: 1.0,
@@ -10,7 +11,7 @@ define( ["qlik", "jquery", "text!./style.css"], function ( qlik, $, cssContent )
 				qMeasures : [],
 				qInitialDataFetch : [{
 					qWidth : 10,
-					qHeight : 1000
+					qHeight : 20
 				}]
 			},			
 		},
@@ -29,7 +30,79 @@ define( ["qlik", "jquery", "text!./style.css"], function ( qlik, $, cssContent )
 					max : 10
 				},
 				settings: {
-					uses: "settings"
+					uses: "settings",				
+					items: {  
+						tableTitle: {                        
+							type: "string",                  
+							ref: "CSS_Table_Title",                 
+							label: "Title CSS",				     
+							expression: "",
+							defaultValue:""
+						},						
+						tableSelected: {                        
+							type: "string",                  
+							ref: "CSS_Table",                 
+							label: "<table> CSS",				     
+							expression: "",
+							defaultValue:""
+						},	
+						trSelectedOdd: {                        
+							type: "string",                  
+							ref: "CSS_TR_Selected_Odd",                 
+							label: "<tr> Odds Selected CSS",				     
+							expression: "",
+							defaultValue:""
+						},	
+						trUnselectedOdd: {                        
+							type: "string",                  
+							ref: "CSS_TR_Unelected_Odd",                 
+							label: "<tr> Odds Not Selected CSS",				     
+							expression: "",
+							defaultValue:""
+						},	
+						trSelectedEven: {                        
+							type: "string",                  
+							ref: "CSS_TR_Selected_Even",                 
+							label: "<tr> Even Selected CSS",				     
+							expression: "",
+							defaultValue:""
+						},	
+						trUnselectedEven: {                        
+							type: "string",                  
+							ref: "CSS_TR_Unelected_Even",                 
+							label: "<tr> Even Not Selected CSS",				     
+							expression: "",
+							defaultValue:""
+						},							
+						tdselectedOdd: {                        
+							type: "string",                  
+							ref: "CSS_TD_Selected_Odd",                 
+							label: "<td> Odds Selected CSS",				     
+							expression: "",
+							defaultValue:""
+						},	
+						tdUnselectedOdd: {                        
+							type: "string",                  
+							ref: "CSS_TD_Unelected_Odd",                 
+							label: "<td> Odds Not Selected CSS",				     
+							expression: "",
+							defaultValue:""
+						},							
+						tdselectedEven: {                        
+							type: "string",                  
+							ref: "CSS_TD_Selected_Even",                 
+							label: "<td> Even Selected CSS",				     
+							expression: "",
+							defaultValue:""
+						},	
+						tdUnselectedEven: {                        
+							type: "string",                  
+							ref: "CSS_TD_Unelected_Even",                 
+							label: "<td> Even Not Selected CSS",				     
+							expression: "",
+							defaultValue:""
+						}								
+					}
 				}
 			}
 		},
@@ -42,7 +115,20 @@ define( ["qlik", "jquery", "text!./style.css"], function ( qlik, $, cssContent )
 			var me = this;
 			var app = qlik.currApp(this);
 			var dim_count = layout.qHyperCube.qSize.qcx;	
-			var rowcount = 0;
+			var rowcount = 0;			
+
+			var CSSTable = ' style="' + layout.CSS_Table + ';"';
+			var CSSTitle = ' style="' + layout.CSS_Table_Title + ';"';
+
+			var CSSTRSelectedOdd 		= ' style="' + layout.CSS_TR_Selected_Odd + '" ';
+			var CSSTRUnSelectedOdd 		= ' style="' + layout.CSS_TR_Unelected_Odd + ';" ';
+			var CSSTRSelectedEven 		= ' style="' + layout.CSS_TR_Selected_Even + '" ';
+			var CSSTRUnSelectedEven 	= ' style="' + layout.CSS_TR_Unelected_Even + ';" ';			
+			
+			var CSSTDSelectedOdd 	= ' style="' + layout.CSS_TD_Selected_Odd + ';" ';
+			var CSSTDUnSelectedOdd	= ' style="' + layout.CSS_TD_Unelected_Odd + ';" ';	
+			var CSSTDSelectedEven	= ' style="' + layout.CSS_TD_Selected_Even + ';" ';
+			var CSSTDUnSelectedEven	= ' style="' + layout.CSS_TD_Unelected_Even + ';" ';	
 			
 			var numberOfRows = this.backendApi.getRowCount();
 			
@@ -51,13 +137,14 @@ define( ["qlik", "jquery", "text!./style.css"], function ( qlik, $, cssContent )
 			var lastrow = 0;
 			var morevalues=false;
 			
-			var self = this, html = "";
-			
-			html += '<table>';
-			html += '<tr>';
-			
 			var dimArray = [];
-			var dimCounter = 0;
+			var dimCounter = 0;		
+			var self = this, html = "";			
+			
+			html += '<table' + CSSTable + '>';
+			html += '<tr'+ CSSTitle +'>';
+			
+
 			
 			//Construct title by dimension
 			$.each(this.backendApi.getDimensionInfos(), function(key, value) {
@@ -85,15 +172,31 @@ define( ["qlik", "jquery", "text!./style.css"], function ( qlik, $, cssContent )
 				lastrow = rowNo;
 				html+='<tr>';
 				
-				oddLine = ((rowNo % 2) != 0);
+				if ((rowNo % 2) != 0) {
+					oddLine = true;
+					var CSSTDOddSel = CSSTDSelectedOdd;
+					var CSSTDOddUns = CSSTDUnSelectedOdd;
+				} else {
+					oddLine = false;
+					var CSSTDOddSel = CSSTDSelectedEven;
+					var CSSTDOddUns = CSSTDUnSelectedEven;
+					
+				}
 				
 				for (var d=0;d<dim_count;d++) {
 					var dataFieldValue = row[d].qText
 					var dataValue = dataFieldValue + fieldValueSeparator + dimArray[d][1];
 					//+ row[d].qState
-					html += '<td class="data-odd-' + oddLine + '" data-value="' + dataValue + '">';
-					html += dataFieldValue;
-					html += '</td>';	
+					if (row[d].qState == 'S') {
+						html += '<td class="data-odd-' + oddLine + '" data-value="' + dataValue + '"'+ CSSTDOddSel +'>';
+						html += dataFieldValue;
+						html += '</td>';	
+					} else {
+						html += '<td class="data-odd-' + oddLine + '" data-value="' + dataValue + '"'+ CSSTDOddUns +'>';
+						html += dataFieldValue;
+						html += '</td>';	
+						
+					}
 					
 				}
 				
@@ -101,58 +204,11 @@ define( ["qlik", "jquery", "text!./style.css"], function ( qlik, $, cssContent )
 				
 
 								
-			});
-			/*
-			if(numberOfRows > (lastrow + 1)) {
-				rowcount = layout.qHyperCube.qDataPages[0].qMatrix.length;
-				var requestPage = [{
-				qTop : rowcount + 1,
-				qLeft : 0,
-				qWidth : 10, //should be # of columns
-				qHeight : Math.min(1000, numberOfRows - rowcount)
-				}];
-				
-				alert(rowcount);
-				me.backendApi.getData(requestPage).then(function(dataPages) {
-					me.paint($element);
-				});
-			};
-			*/
-					
-
-			
-			
-			
-			
-			//layout.qHyperCube.qDataPages[0].qMatrix[3][1].qText);
-
-			
-			//qTexto = layout.qHyperCube.qDataPages[0].qMatrix[0][i].qText;
-				
-
+			});				
 			
 			
 			html += '</table>';
 			
-			/*
-			for (var i=0; i< dim_count; i++) {
-				qTexto = parseInt(layout.qHyperCube.qDataPages[0].qMatrix[0][0].qText);
-			}
-			*/
-
-			
-			
-			
-			
-			/*
-			layout.qListObject.qDataPages[0].qMatrix.forEach( function ( row ) {
-				html += '<li class="data state' + row[0].qState + '" data-value="' + row[0].qElemNumber + '">' + row[0].qText;
-				if ( row[0].qFrequency ) {
-					html += '<span>' + row[0].qFrequency + '</span>';
-				}
-				html += '</li>';
-			} );
-			*/
 			
 			if ( this.backendApi.getRowCount() > lastrow + 1 ) {
 				html += "<button id='more'>More...</button>";
@@ -166,7 +222,7 @@ define( ["qlik", "jquery", "text!./style.css"], function ( qlik, $, cssContent )
 					qTop: lastrow + 1,
 					qLeft: 0,
 					qWidth: dim_count, //should be # of columns
-					qHeight: Math.min( 1000, this.backendApi.getRowCount() - lastrow )
+					qHeight: Math.min( linesToFetch, this.backendApi.getRowCount() - lastrow )
 				}];
 				$element.find( "#more" ).on( "qv-activate", function () {
 					self.backendApi.getData( requestPage ).then( function ( dataPages ) {
@@ -177,25 +233,28 @@ define( ["qlik", "jquery", "text!./style.css"], function ( qlik, $, cssContent )
 			
 			$( ".data-odd-true" ).click(function() {
 				if ( this.hasAttribute( "data-value" ) ) {
-					var dataValue = this.getAttribute( "data-value" );
-					
+					var dataValue = this.getAttribute( "data-value" );					
 					var selectedValue = dataValue.split(fieldValueSeparator)[0];
-					//var fieldName = parseInt(dataValue.split(fieldValueSeparator)[1], 10);
 					var fieldName = dataValue.split(fieldValueSeparator)[1];
-									
-					//var value = parseInt( fieldName, 10 ), dim = 0;					
+										
+													
 					app.field(fieldName).toggleSelect(selectedValue, true);
-					//self.selectValues( fieldDimId, [fieldValue], true );
+					//app.field(fieldName).selectValues([String(selectedValue)], true, true);
 
-					//this.classList.toggle("selected");					
-					
-					/*
-					var value = parseInt( this.getAttribute( "data-value" ), 10 ), dim = 0;
-					self.selectValues( dim, [value], true );
-					this.classList.toggle("selected");
-					*/
 				}
 			});
+			
+			$( ".data-odd-false" ).click(function() {
+				if ( this.hasAttribute( "data-value" ) ) {
+					var dataValue = this.getAttribute( "data-value" );					
+					var selectedValue = dataValue.split(fieldValueSeparator)[0];
+					var fieldName = dataValue.split(fieldValueSeparator)[1];
+													
+					app.field(fieldName).toggleSelect(selectedValue, true);
+					//app.field(fieldName).selectValues([String(selectedValue)], true, true);
+
+				}
+			});			
 
 			return qlik.Promise.resolve();
 		}
