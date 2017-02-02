@@ -120,9 +120,9 @@ define( ["qlik", "jquery", "text!./style.css"], function ( qlik, $, cssContent )
 			var CSSTable = ' style="' + layout.CSS_Table + ';"';
 			var CSSTitle = ' style="' + layout.CSS_Table_Title + ';"';
 
-			var CSSTRSelectedOdd 		= ' style="' + layout.CSS_TR_Selected_Odd + '" ';
+			var CSSTRSelectedOdd 		= ' style="' + layout.CSS_TR_Selected_Odd + ';" ';
 			var CSSTRUnSelectedOdd 		= ' style="' + layout.CSS_TR_Unelected_Odd + ';" ';
-			var CSSTRSelectedEven 		= ' style="' + layout.CSS_TR_Selected_Even + '" ';
+			var CSSTRSelectedEven 		= ' style="' + layout.CSS_TR_Selected_Even + ';" ';
 			var CSSTRUnSelectedEven 	= ' style="' + layout.CSS_TR_Unelected_Even + ';" ';			
 			
 			var CSSTDSelectedOdd 	= ' style="' + layout.CSS_TD_Selected_Odd + ';" ';
@@ -168,9 +168,12 @@ define( ["qlik", "jquery", "text!./style.css"], function ( qlik, $, cssContent )
 			html += '</tr>';
 			
 			var oddLine = false;
+			var td_html = "";
+			var flagLineSelected = false;
 			this.backendApi.eachDataRow(function(rowNo, row) { 
 				lastrow = rowNo;
-				html+='<tr>';
+				
+				flagLineSelected = false;
 				
 				if ((rowNo % 2) != 0) {
 					oddLine = true;
@@ -183,23 +186,40 @@ define( ["qlik", "jquery", "text!./style.css"], function ( qlik, $, cssContent )
 					
 				}
 				
+				td_html = ""
 				for (var d=0;d<dim_count;d++) {
 					var dataFieldValue = row[d].qText
 					var dataValue = dataFieldValue + fieldValueSeparator + dimArray[d][1];
 					//+ row[d].qState
 					if (row[d].qState == 'S') {
-						html += '<td class="data-odd-' + oddLine + '" data-value="' + dataValue + '"'+ CSSTDOddSel +'>';
-						html += dataFieldValue;
-						html += '</td>';	
+						flagLineSelected = true;
+						td_html += '<td class="data-odd-' + oddLine + '" data-value="' + dataValue + '"'+ CSSTDOddSel +'>';
+						td_html += dataFieldValue;
+						td_html += '</td>';	
 					} else {
-						html += '<td class="data-odd-' + oddLine + '" data-value="' + dataValue + '"'+ CSSTDOddUns +'>';
-						html += dataFieldValue;
-						html += '</td>';	
+						td_html += '<td class="data-odd-' + oddLine + '" data-value="' + dataValue + '"'+ CSSTDOddUns +'>';
+						td_html += dataFieldValue;
+						td_html += '</td>';	
 						
 					}
 					
 				}
 				
+				if (flagLineSelected) {
+					if (oddLine) {
+						html += '<tr'+ CSSTRSelectedOdd +'>';
+					} else {
+						html += '<tr'+ CSSTRSelectedEven +'>';
+					}
+				} else {
+					if (oddLine) {
+						html += '<tr'+ CSSTRUnSelectedOdd +'>';
+					} else {
+						html += '<tr'+ CSSTRUnSelectedEven +'>';
+					}
+				}				
+				
+				html+=td_html;
 				html+='</tr>';
 				
 
