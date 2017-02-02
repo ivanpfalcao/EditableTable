@@ -1,7 +1,7 @@
 define( ["qlik", "jquery", "text!./style.css"], function ( qlik, $, cssContent ) {
 	'use strict';
 	$( "<style>" ).html( cssContent ).appendTo( "head" );
-	var maxNumberOfRows = 0;
+	var app; // Global app
 	return {
 		initialProperties : {
 			version: 1.0,
@@ -40,13 +40,14 @@ define( ["qlik", "jquery", "text!./style.css"], function ( qlik, $, cssContent )
 		},
 		paint: function ( $element,layout ) {
 			var me = this;
+			var app = qlik.currApp(this);
 			var dim_count = layout.qHyperCube.qSize.qcx;	
 			var rowcount = 0;
 			
 			var numberOfRows = this.backendApi.getRowCount();
 			
 			var paginationLoopControl=0;
-			
+			var fieldValueSeparator = '||-||';
 			var lastrow = 0;
 			var morevalues=false;
 			
@@ -55,35 +56,47 @@ define( ["qlik", "jquery", "text!./style.css"], function ( qlik, $, cssContent )
 			html += '<table>';
 			html += '<tr>';
 			
+			var dimArray = [];
+			var dimCounter = 0;
+			
 			//Construct title by dimension
 			$.each(this.backendApi.getDimensionInfos(), function(key, value) {
-				
-				html += '<td class="data state' + value.qState + '" data-value="' + value.qFallbackTitle + '">';
+				//value.qState
+				html += '<td class="dimension-title" data-value="' + value.qFallbackTitle + '">';
 				html += value.qFallbackTitle;
 				html += '</td>';
+				dimArray[dimCounter] = ['dim',value.qFallbackTitle];
+				dimCounter++;
 			});
 			
 			//Construct title by measure
 			$.each(this.backendApi.getMeasureInfos(), function(key, value) {
-				
-				html += '<td class="data state' + value.qState + '" data-value="' + value.qFallbackTitle + '">';
+				//value.qState
+				html += '<td class="measure-title" data-value="' + value.qFallbackTitle + '">';
 				html += value.qFallbackTitle;
 				html += '</td>';
+				dimArray[dimCounter] = ['measure',value.qFallbackTitle];
+				dimCounter++;
 			});
 			html += '</tr>';
 			
-			
+			var oddLine = false;
 			this.backendApi.eachDataRow(function(rowNo, row) { 
 				lastrow = rowNo;
 				html+='<tr>';
+				
+				oddLine = ((rowNo % 2) != 0);
+				
 				for (var d=0;d<dim_count;d++) {
-					var dataValue = row[d].qText;
-					
-					html += '<td class="data state' + dataValue + '" data-value="' + dataValue + '">';
-					html += dataValue;
+					var dataFieldValue = row[d].qText
+					var dataValue = dataFieldValue + fieldValueSeparator + dimArray[d][1];
+					//+ row[d].qState
+					html += '<td class="data-odd-' + oddLine + '" data-value="' + dataValue + '">';
+					html += dataFieldValue;
 					html += '</td>';	
 					
 				}
+				
 				html+='</tr>';
 				
 
@@ -162,17 +175,28 @@ define( ["qlik", "jquery", "text!./style.css"], function ( qlik, $, cssContent )
 				} );
 			}
 			
-			/*
-			if ( this.selectionsEnabled ) {
-				$element.find( 'li' ).on( 'qv-activate', function () {
-					if ( this.hasAttribute( "data-value" ) ) {
-						var value = parseInt( this.getAttribute( "data-value" ), 10 ), dim = 0;
-						self.selectValues( dim, [value], true );
-						this.classList.toggle("selected");
-					}
-				} );
-			}
-			*/
+			$( ".data-odd-true" ).click(function() {
+				if ( this.hasAttribute( "data-value" ) ) {
+					var dataValue = this.getAttribute( "data-value" );
+					
+					var selectedValue = dataValue.split(fieldValueSeparator)[0];
+					//var fieldName = parseInt(dataValue.split(fieldValueSeparator)[1], 10);
+					var fieldName = dataValue.split(fieldValueSeparator)[1];
+									
+					//var value = parseInt( fieldName, 10 ), dim = 0;					
+					app.field(fieldName).toggleSelect(selectedValue, true);
+					//self.selectValues( fieldDimId, [fieldValue], true );
+
+					//this.classList.toggle("selected");					
+					
+					/*
+					var value = parseInt( this.getAttribute( "data-value" ), 10 ), dim = 0;
+					self.selectValues( dim, [value], true );
+					this.classList.toggle("selected");
+					*/
+				}
+			});
+
 			return qlik.Promise.resolve();
 		}
 	};
